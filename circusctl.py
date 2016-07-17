@@ -78,6 +78,7 @@ def stats(name=None, process=None, extended=None):
     with the stat command.
 
     CLI Example:
+
         salt '*' circusctl.stats
         salt '*' circusctl.stats name
         salt '*' circusctl.stats name process
@@ -93,14 +94,18 @@ def stats(name=None, process=None, extended=None):
     return stats.get('infos') or stats.get('info')
 
 
-def status():
+def status(name=None):
     '''
     Get the status of a watcher or all watchers
     ===========================================
 
     This command start get the status of a watcher or all watchers.
+
+    CLI Example:
+        salt '*' circusctl.status
+        salt '*' circusctl.status name
     '''
-    statuses = _send_message("status")
+    statuses = _send_message("status", name=name)
     return statuses["statuses"]
 
 
@@ -110,6 +115,10 @@ def options(name):
     ==========================================
 
     This command returns all option values for a given watcher.
+
+    CLI Example:
+
+        salt '*' circusctl.options name
     '''
     options = _send_message("options", name=name)
     return options["options"]
@@ -122,30 +131,79 @@ def dstats():
 
     You can get at any time some statistics about circusd
     with the dstat command.
+
+    CLI Example:
+
+        salt '*' circusctl.dstats
     '''
     dstats = _send_message("dstats")
     return dstats
 
 
-def start(name):
+def start(name, waiting=None, match=None):
     '''
     Start the arbiter or a watcher
     ==============================
 
     This command starts all the processes in a watcher or all watchers.
+
+    If the property name is present, the watcher will be started.
+
+    If ``waiting`` is False (default), the call will return immediately
+    after calling `start` on each process.
+
+    If ``waiting`` is True, the call will return only when the start
+    process is completely ended. Because of the
+    :ref:`graceful_timeout option <graceful_timeout>`, it can take some
+    time.
+
+    The ``match`` parameter can have the value ``simple`` for string
+    compare, ``glob`` for wildcard matching (default) or ``regex`` for
+    regex matching.
+
+    CLI Example:
+
+        salt '*' circusctl.start name
+        salt '*' circusctl.start name waiting=True match=simple
     '''
-    result = _send_message("start", name=name)
+    result = _send_message("start", name=name, waiting=waiting, match=match)
     return result["status"]
 
 
-def stop(name):
+def stop(name=None, waiting=None, match=None):
     '''
+    Stop watchers
+    =============
+
+    This command stops a given watcher or all watchers.
+
+    If the ``name`` property is present, then the stop will be applied
+    to the watcher corresponding to that name. Otherwise, all watchers
+    will get stopped.
+
+    If ``waiting`` is False (default), the call will return immediatly
+    after calling `stop_signal` on each process.
+
+    If ``waiting`` is True, the call will return only when the stop process
+    is completly ended. Because of the
+    :ref:`graceful_timeout option <graceful_timeout>`, it can take some
+    time.
+
+    The ``match`` parameter can have the value ``simple`` for string
+    compare, ``glob`` for wildcard matching (default) or ``regex`` for
+    regex matching.
+
+    CLI Example:
+
+        salt '*' circusctl.stop
+        salt '*' circusctl.stop name
+        salt '*' circusctl.stop name waiting=True match=simple
     '''
-    result = _send_message("stop", name=name)
+    result = _send_message("stop", name=name, waiting=waiting, match=match)
     return result["status"]
 
 
-def reload(name):
+def reload(name=None, graceful=None, sequential=None, waiting=None):
     '''
     Reload the arbiter or a watcher
     ===============================
@@ -166,6 +224,13 @@ def reload(name):
         * If sequential is true, the arbiter will restart each process
           in a sequential way (with a `warmup_delay` pause between each
           step)
+
+    CLI Example:
+
+        salt '*' circusctl.reload
+        salt '*' circusctl.reload name
+        salt '*' circusctl.reload name graceful=true
+        salt '*' circusctl.reload name graceful=True sequential=True waiting=True
     '''
     result = _send_message("reload", name=name)
     return result["status"]
@@ -179,6 +244,12 @@ def signal(name, signum, pid=None, childpid=None, children=False,
 
     This command allows you to send a signal to all processes in a watcher,
     a specific process in a watcher or its children.
+
+    CLI Example:
+
+        salt '*' circusctl.signal name SIGHUB
+        salt '*' circusctl.signal <name> [<pid>] [children] [recursive]
+            <signum>
     '''
     result = _send_message(
         "signal",
