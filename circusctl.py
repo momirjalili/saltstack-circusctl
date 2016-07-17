@@ -51,7 +51,10 @@ def list_(name=None, endpoint=None):
     To get the list of active processes in a watcher:
         salt '*' circusctl.list watcher_name
     '''
-    watchers = _send_message("list", name=name, endpoint=endpoint)
+    try:
+        watchers = _send_message("list", name=name, endpoint=endpoint)
+    except CallError as ce:
+            return ce.message
     return watchers.get("watchers") or watchers.get("pids")
 
 
@@ -185,8 +188,5 @@ def _send_message(command, endpoint=None, **properties):
     else:
         props = {}
     client = CircusClient(endpoint=endpoint)
-    try:
-        result = client.send_message(command, **props)
-    except CallError as ce:
-            return ce.message
+    result = client.send_message(command, **props)
     return result
