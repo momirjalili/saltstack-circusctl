@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 :maintainer: Moeen Mirjalili (momirjalili@gmail.com)
-:maturity: 16July2016
+:maturity: 16.07.2016
 :requires: none
 :platform: all
 '''
@@ -37,7 +37,7 @@ def __virtual__():
     return False
 
 
-def list_(name=None, endpoint=None):
+def list_(name=None):
     '''
     Get list of watchers or processes in a watcher
     The response return the list asked. the mapping returned can either be
@@ -52,7 +52,7 @@ def list_(name=None, endpoint=None):
         salt '*' circusctl.list watcher_name
     '''
     try:
-        watchers = _send_message("list", name=name, endpoint=endpoint)
+        watchers = _send_message("list", name=name)
     except CallError as ce:
             return ce.message
     return watchers.get("watchers") or watchers.get("pids")
@@ -69,41 +69,53 @@ def version():
     return ".".join(map(str, circus.version_info))
 
 
-def stats(endpoint=None):
+def stats(name=None, process=None, extended=None):
     '''
     Get process infos
     =================
 
     You can get at any time some statistics about your processes
     with the stat command.
+
+    CLI Example:
+        salt '*' circusctl.stats
+        salt '*' circusctl.stats name
+        salt '*' circusctl.stats name process
+        salt '*' circusctl.stats name process True
     '''
-    stats = _send_message("stats", endpoint=endpoint)
-    return stats["infos"]
+    try:
+        stats = _send_message("stats",
+                              name=name,
+                              process=process,
+                              extended=extended)
+    except CallError as ce:
+        return ce.message
+    return stats.get('infos') or stats.get('info')
 
 
-def status(endpoint=None):
+def status():
     '''
     Get the status of a watcher or all watchers
     ===========================================
 
     This command start get the status of a watcher or all watchers.
     '''
-    statuses = _send_message("status", endpoint=endpoint)
+    statuses = _send_message("status")
     return statuses["statuses"]
 
 
-def options(name, endpoint=None):
+def options(name):
     '''
     Get the value of all options for a watcher
     ==========================================
 
     This command returns all option values for a given watcher.
     '''
-    options = _send_message("options", name=name, endpoint=endpoint)
+    options = _send_message("options", name=name)
     return options["options"]
 
 
-def dstats(endpoint=None):
+def dstats():
     '''
     Get circusd stats
     =================
@@ -111,29 +123,29 @@ def dstats(endpoint=None):
     You can get at any time some statistics about circusd
     with the dstat command.
     '''
-    dstats = _send_message("dstats", endpoint=endpoint)
+    dstats = _send_message("dstats")
     return dstats
 
 
-def start(name, endpoint=None):
+def start(name):
     '''
     Start the arbiter or a watcher
     ==============================
 
     This command starts all the processes in a watcher or all watchers.
     '''
-    result = _send_message("start", name=name, endpoint=endpoint)
+    result = _send_message("start", name=name)
     return result["status"]
 
 
-def stop(name, endpoint=None):
+def stop(name):
     '''
     '''
-    result = _send_message("stop", name=name, endpoint=endpoint)
+    result = _send_message("stop", name=name)
     return result["status"]
 
 
-def reload(name, endpoint=None):
+def reload(name):
     '''
     Reload the arbiter or a watcher
     ===============================
@@ -155,12 +167,12 @@ def reload(name, endpoint=None):
           in a sequential way (with a `warmup_delay` pause between each
           step)
     '''
-    result = _send_message("reload", name=name, endpoint=endpoint)
+    result = _send_message("reload", name=name)
     return result["status"]
 
 
 def signal(name, signum, pid=None, childpid=None, children=False,
-           recursive=False, endpoint=None):
+           recursive=False):
     '''
     Send a signal
     =============
@@ -180,13 +192,14 @@ def signal(name, signum, pid=None, childpid=None, children=False,
     return result["status"]
 
 
-def _send_message(command, endpoint=None, **properties):
-    if not endpoint:
-        endpoint = DEFAULT_ENDPOINT_DEALER
-    if properties and all(properties.values()):
-        props = properties
-    else:
-        props = {}
+def _send_message(command, **properties):
+    # check if circusct.endpoint is in minion config
+    endpoint = __salt__['config.get']('circusctl.endpoint') or \
+                DEFAULT_ENDPOINT_DEALER
+    log.debug(endpoint)
+    props = dict((k, v) for k, v in properties.iteritems() if v)
+    log.debug(properties)
+    log.debug(props)
     client = CircusClient(endpoint=endpoint)
     result = client.send_message(command, **props)
     return result
