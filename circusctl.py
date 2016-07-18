@@ -106,7 +106,7 @@ def status(name=None):
         salt '*' circusctl.status name
     '''
     statuses = _send_message("status", name=name)
-    return statuses["statuses"]
+    return statuses.get("statuses") or statuses.get("status")
 
 
 def options(name):
