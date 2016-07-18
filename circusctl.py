@@ -258,7 +258,6 @@ def signal(name, signum, pid=None, childpid=None, children=False,
         pid=pid,
         childpid=childpid,
         recursive=recursive,
-        endpoint=endpoint
     )
     return result["status"]
 
@@ -267,10 +266,8 @@ def _send_message(command, **properties):
     # check if circusct.endpoint is in minion config
     endpoint = __salt__['config.get']('circusctl.endpoint') or \
                 DEFAULT_ENDPOINT_DEALER
-    log.debug(endpoint)
+    # sending keys with None values in the message to circus will result
+    # an error. removing them from properties
     props = dict((k, v) for k, v in properties.iteritems() if v)
-    log.debug(properties)
-    log.debug(props)
     client = CircusClient(endpoint=endpoint)
-    result = client.send_message(command, **props)
-    return result
+    return client.send_message(command, **props)
